@@ -1,0 +1,11 @@
+*.txt
+__pycache__/*
+*.pyc
+.DS_Store
+.vscode/*
+*.jpeg
+data/*
+*.log
+*.lock
+env.py
+local_test/*

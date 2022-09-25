@@ -1,0 +1,9 @@
+MQHost = '***'
+MQPort = 5672
+MQQueueName = '***'
+MQHeartBeat = 60
+Judgername = 'judger'
+AliyunAccessKey = '***'
+AccessSecret = '***'
+ResourceOwnerId = '***'
+VirtualHost = 'JudgeHost'
