@@ -114,17 +114,18 @@ def run():
             os.remove(output_file_name)
         result["cases"].append(case_result)
         result["result"] = max(result["result"], case_result["status"])
-    
-if __name__ == '__main__':
-    global args
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dir", default=".")
-    parser.add_argument("-c", "--config", default="config.json")
-    parser.add_argument("-r", "--result", default="result.json")
-    args = parser.parse_args()
-    os.chdir(args.dir)
-    config = json.load(open(args.config, "r"))
-    if compile():
-        run()
-    json.dump(result, open(args.result, "w"))
+
+
+# if __name__ == '__main__':
+global args
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--dir", default=".")
+parser.add_argument("-c", "--config", default="config.json")
+parser.add_argument("-r", "--result", default="result.json")
+args = parser.parse_args()
+os.chdir(args.dir)
+config = json.load(open(args.config, "r"))
+if compile():
+    run()
+json.dump(result, open(args.result, "w"))
 

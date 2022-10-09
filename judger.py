@@ -1,26 +1,31 @@
-from base64 import encode
-import encodings
+from multiprocessing import Queue
 import requests
-from Strategys.DefaultStrategy import DefaultStrategy
-
 import pika
-import sys
-import datetime
+import os
 import json
 import time
 import logging
 import logging.config
-from aliyun_env import *
+from Judge.aliyun_env import *
+
+from Judge.Operations.toPlatform.ReportProgress import report_progress
+from Judge.Operations.toPlatform import AcceptMission
+from Judge.Operations.Services_.MissionInfo import *
+from Judge.Operations.interface import progressAPI
+
+global m
 
 
-# logging.config.fileConfig("logger.conf")
+
+# import sys
+
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def Console(message):
     logger = logging.getLogger("infoLogger")
 
     logger.info("[{0}] {1}".format(Judgername, message))
-
 
 
 def ErrorConsole(message):
@@ -94,63 +99,65 @@ def TaskEnded(method):
 
 
 def Consumer(channel, method, properites, body):
-    '''
-    aa = str(body,encoding='utf-8')
-    with open('aa.txt', 'w', encoding='utf-8') as f:
-        f.write(aa)
-        # f.close()
-    
-    with open('aa.txt', 'r', encoding='utf-8') as f: 
-         m = f.read()
-    print(m)
-    
-    if m==('[{"missionType": "AiModelTraining", "platformContext": "123"}]'):
-        # mission = m[0]['missionType']
-        print('+++++++++++++++++++++++++++',eval(m)[-1])
-        mission = eval(m)[-1]['missionType']
-        print(mission)
-
-        if mission==('AiModelTraining'):
-            print("startService")
-    '''
-    # # print(str(body,encoding='utf-8'))
-    # #print(aa.shape())
+    global m
     m = eval(body)
-    mission = 'AiModelTraining'
-    # print(mission)
 
-    # print(eval(body))
-    # print(type(m))
-    # mission = eval(body)[0]['missionType']
-    # taskid = eval(body)[0]['task_id']
-    print(m['missionType'])
+    missionType = m['missionType']
+    platformContext = m['platformContext']
+
+    print('打印任务参数')
     print(m)
-    # print(body)
-    channel.basic_ack(delivery_tag=method.delivery_tag)
-    if mission=='AiModelTraining':
+    print('打印任务类型')
+    print(m['missionType'])
+    if missionType == 'AiModelTraining':
+        AcceptMission.run_accept(platformContext)
         channel.basic_ack(delivery_tag=method.delivery_tag)
-    #     #http://172.18.60.159:60080/mmdetection/mmdet_model_train?classes=garbage&data_root=data%2Fgarbage&data_samples_pre_gpu=4&data_test_ann_file=annotations%2Finstances_val2017.json&data_test_img_prefix=val2017&data_train_dataset_ann_file=annotations%2Finstances_train2017.json&data_train_dataset_img_prefix=train2017&data_val_ann_file=annotations%2Finstances_val2017.json&data_val_img_prefix=val2017&gpu_ids=0&max_epochs=100&model_config_id=1&model_save_path=data%2Ftrain&workers_per_gpu=2
 
-        url = "http://172.18.60.159:60080/mmdetection/mmdet_model_train?"
-    #     url = 'http://172.18.60.159:50043/queryProgressMsg/'
+        # url = "http://192.168.9.99:6080/mmdetection/mmdet_model_train?"
 
-        datas = []
-        message_dict = json.loads(body)
-        for k, v in message_dict.items():
-            if k=='missionType':
-                continue
-            else:
-                if type(v) == str:
-                    v_new = v.replace('/', '%2F')
-                    datas.append(f'{k}={v_new}')
-        para = '&'.join(datas)
-        print(para)
-        print(1)
-        params = m
-        url += para
-        print(url)
-        res = requests.get(url=url,params=params)
-        print(res.text)
+        # datas = []
+        # message_dict = json.loads(body)
+        # for k, v in message_dict.items():
+        #     if k == 'missionType':
+        #         continue
+        #     else:
+        #         if type(v) == str:
+        #             v_new = v.replace('/', '%2F')
+        #             datas.append(f'{k}={v_new}')
+        # para = '&'.join(datas)
+        # # print(para)
+        # params = m
+        # url += para
+        # print(url)
+        # res = requests.get(url=url, params=params)
+        # print('获取进度')
+        # # print(res.text)
+        # # server_pid = res.json()['process_id']
+        # # print(server_pid)
+        #
+        # 获取进度
+        # 需要判断任务启动成功
+        time.sleep(20)
+        while True:
+            res = requests.get(url='http://172.18.60.173:8006/progress/get_progress')
+            # if res.status_code == 200:
+            #     break
+            print(res)
+            server_pid = res.json()[3]
+            # if res.json()[1]==None:
+            mission_progress = res.json()[0]
+            total_epoch = max(res.json()[1], res.json()[2])
+            epoch = min(res.json()[1], res.json()[2])
+
+            # create_list()
+            init_list()
+            add_info(server_pid, missionType, epoch, total_epoch, mission_progress)
+            # report_progress(5, 8, progress)
+            # 回报进度
+            report_progress(platformContext, epoch, total_epoch, mission_progress)
+            time.sleep(5)
+            if mission_progress == 1:
+                break
 
 
 def ErrorConsumer(channel, method, properites, body):
@@ -163,15 +170,13 @@ def MQConnector():
                            heartbeat=MQHeartBeat)
 
 
-if __name__ == '__main__':
-    # print(sys.argv)
-    # if (len(sys.argv) != 2):
-    #     print("Usage: python3 judger.py index")
-    #     exit(0)
-    # Judgername += sys.argv[1]
+def run_judger():
     global rabbitMQChannel
     global rabbitMQConnection
     while True:
+
+        create_list()
+        init_list()
 
         failed_last_time = False
         try:
@@ -184,7 +189,6 @@ if __name__ == '__main__':
 
                 rabbitMQChannel.start_consuming()
 
-
             else:
                 rabbitMQChannel = GetRabbitMQChannel(
                     rabbitMQConnection, MQQueueName, ErrorConsumer)
@@ -194,9 +198,38 @@ if __name__ == '__main__':
                 rabbitMQChannel.start_consuming()
                 failed_last_time = False
 
+
         except Exception as e:
             failed_last_time = True
             ErrorConsole(
                 'connection lost, waiting to reconnect in 5 second(s)...')
             print(e)
             time.sleep(5)
+
+
+if __name__ == "__main__":
+    # res = requests.get(url='http://172.18.60.173:8006/progress/get_progress')
+    # # if res.status_code == 200:
+    # #     break
+    # print(res)
+    # missionType = "aaa"
+    # server_pid = res.json()[0]
+    # # if res.json()[1]==None:
+    # print(server_pid)
+    # mission_progress = res.json()[1]
+    # print(mission_progress)
+    # epoch = res.json()[2]
+    # print(epoch)
+    # total_epoch = res.json()[3]
+    # print(total_epoch)
+    # # progress = res.text.lstrip('[').rstrip(']')
+    # # print(progress)
+    # create_list()
+    #
+    # init_list()
+    # add_info(server_pid, missionType, epoch, total_epoch, mission_progress)
+    # # report_progress(5, 8, progress)
+    # # 回报进度
+    # report_progress("platformContext", epoch, total_epoch, mission_progress)
+    # time.sleep(5)
+    run_judger()

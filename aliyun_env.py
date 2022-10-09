@@ -1,5 +1,5 @@
-from AliyunCredentialsProvider2 import AliyunCredentialsProvider
-from env import *
+from Judge.AliyunCredentialsProvider2 import AliyunCredentialsProvider
+from Judge.env import *
 
 provider = AliyunCredentialsProvider(
     AliyunAccessKey, AccessSecret, ResourceOwnerId)
