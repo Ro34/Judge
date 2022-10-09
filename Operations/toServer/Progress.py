@@ -10,8 +10,9 @@ from Judge.Operations.toPlatform.ReportProgress import report_progress
 
 def progress_trans():
     global row
-    missionType = judger.m['missionType']
-    platformContext = judger.m['platformContext']
+    m = MissionInfo.message
+    missionType = m['missionType']
+    platformContext =m['platformContext']
     time.sleep(20)
     while True:
         res = requests.get(url='http://172.18.60.173:8006/progress/get_progress')

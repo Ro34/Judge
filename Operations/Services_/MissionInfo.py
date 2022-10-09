@@ -1,6 +1,6 @@
 global mission_list
 
-
+global message
 def init_list():
     global mission_list
     mission_list = [[]]  # 创建一个空列表

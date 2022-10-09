@@ -6,6 +6,8 @@ import json
 import time
 import logging
 import logging.config
+
+from Judge.Operations.Services_ import MissionInfo
 from Judge.aliyun_env import *
 
 from Judge.Operations.toPlatform.ReportProgress import report_progress
@@ -101,7 +103,7 @@ def TaskEnded(method):
 def Consumer(channel, method, properites, body):
     global m
     m = eval(body)
-
+    MissionInfo.message = m
     missionType = m['missionType']
     platformContext = m['platformContext']
 
