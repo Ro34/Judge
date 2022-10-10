@@ -177,9 +177,6 @@ def run_judger():
     global rabbitMQConnection
     while True:
 
-        create_list()
-        init_list()
-
         failed_last_time = False
         try:
             rabbitMQConnection = MQConnector()

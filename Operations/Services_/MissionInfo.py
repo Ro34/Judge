@@ -1,6 +1,10 @@
 global mission_list
 
 global message
+message = {"missionType": 0,
+           "platformContext": 0}
+
+
 def init_list():
     global mission_list
     mission_list = [[]]  # 创建一个空列表
